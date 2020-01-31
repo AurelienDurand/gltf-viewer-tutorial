@@ -54,6 +54,16 @@ bool FirstPersonCameraController::update(float elapsedTime)
   float dollyIn = 0.f;
   float rollRightAngle = 0.f;
 
+
+ // add speed up with Ctrl
+
+  if (glfwGetKey(m_pWindow, GLFW_KEY_LEFT_CONTROL)) {
+    increaseSpeed(m_fSpeed*20.f);
+  } else {
+    m_fSpeed = m_fSpeed_loc;
+  }
+
+
   if (glfwGetKey(m_pWindow, GLFW_KEY_W)) {
     dollyIn += m_fSpeed * elapsedTime;
   }
@@ -89,6 +99,8 @@ bool FirstPersonCameraController::update(float elapsedTime)
   if (glfwGetKey(m_pWindow, GLFW_KEY_E)) {
     rollRightAngle += 0.001f;
   }
+  m_fSpeed = m_fSpeed_loc;
+
 
   // cursor going right, so minus because we want pan left angle:
   const float panLeftAngle = -0.01f * float(cursorDelta.x);
@@ -107,4 +119,74 @@ bool FirstPersonCameraController::update(float elapsedTime)
   return true;
 }
 
-bool TrackballCameraController::update(float elapsedTime) { return false; }
+bool TrackballCameraController::update(float elapsedTime) {
+
+if (glfwGetMouseButton(m_pWindow, GLFW_MOUSE_BUTTON_MIDDLE ) &&
+      !m_MiddleButtonPressed) {
+    m_MiddleButtonPressed = true;
+    // on récupere la position de la souris quand le bouton millieu de la souris est appuyer
+    glfwGetCursorPos(
+        m_pWindow, &m_LastCursorPosition.x, &m_LastCursorPosition.y);
+  } else if (!glfwGetMouseButton(m_pWindow, GLFW_MOUSE_BUTTON_MIDDLE ) &&
+             m_MiddleButtonPressed) {
+    m_MiddleButtonPressed = false;
+  }
+
+  const auto cursorDelta = ([&]() {
+    if (m_MiddleButtonPressed) {
+      dvec2 cursorPosition;
+      glfwGetCursorPos(m_pWindow, &cursorPosition.x, &cursorPosition.y);
+      const auto delta = cursorPosition - m_LastCursorPosition;
+      m_LastCursorPosition = cursorPosition;
+      return delta;
+    }
+    return dvec2(0);
+  })();
+
+  const float panLeftAngle = -0.01f * float(cursorDelta.x);
+  const float tiltDownAngle = 0.01f * float(cursorDelta.y);
+
+  const auto hasMoved =  panLeftAngle || tiltDownAngle ;
+  if (!hasMoved) {
+    return false;
+  }
+  m_camera.orbit(tiltDownAngle, panLeftAngle);
+      //
+//
+    return true;
+
+    }
+/*
+if (windowManager.isMouseButtonPressed(SDL_BUTTON_LEFT) == true) {
+
+  glm::ivec2 lastmousePos;
+  SDL_GetRelativeMouseState(&lastmousePos.x, &lastmousePos.y);
+  glm::ivec2 getMpos = windowManager.getMousePosition();
+  // std::cout << "1: "<<getMpos[0] << "/" << lastmousePos.x << " 2: " <<
+  // getMpos[1] << "/" << lastmousePos.y << std::endl; std::cout << "1:
+  // "<<getMpos[0]-lastmousePos.x << " 2: " << getMpos[1]-lastmousePos.y <<
+  // std::endl;
+  cam1.rotateLeft(lastmousePos.x);
+  cam1.rotateUp(lastmousePos.y);
+}
+
+if (windowManager.isMouseButtonPressed(SDL_BUTTON_LEFT) == true) {
+
+  glm::ivec2 lastmousePos;
+  SDL_GetRelativeMouseState(&lastmousePos.x, &lastmousePos.y);
+  glm::ivec2 getMpos = windowManager.getMousePosition();
+  // std::cout << "1: "<<getMpos[0] << "/" << lastmousePos.x << " 2: " <<
+  // getMpos[1] << "/" << lastmousePos.y << std::endl; std::cout << "1:
+  // "<<getMpos[0]-lastmousePos.x << " 2: " << getMpos[1]-lastmousePos.y <<
+  // std::endl;
+  cam1.rotateLeft(lastmousePos.x);
+  cam1.rotateUp(lastmousePos.y);
+}
+
+if (windowManager.isKeyPressed(SDLK_w) == true) {
+  cam1.moveFront(-0.1);
+}
+if (windowManager.isKeyPressed(SDLK_s) == true) {
+  cam1.moveFront(0.1);
+}
+*/
