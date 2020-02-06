@@ -315,6 +315,10 @@ int ViewerApplication::run()
         glGetUniformLocation(glslProgram.glId(), "uModelViewMatrix");
     const auto normalMatrixLocation =
         glGetUniformLocation(glslProgram.glId(), "uNormalMatrix");
+    const auto LigthDirectionLocation =
+        glGetUniformLocation(glslProgram.glId(), "uWi");
+    const auto LigthIntensityLocation =
+        glGetUniformLocation(glslProgram.glId(), "uLi");
 
     tinygltf::Model model;
     // TODO Loading the glTF file
@@ -356,6 +360,8 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
             const auto eye = diag.z > 0 ? center + diag : center + 2.f * glm::cross(diag, up);
             cameraController->setCamera(Camera{eye, center, up});
     }
+
+    glm::vec3 lightDirection(1,1,1), lightIntensity(1,1,1);
 	//TrackBall
     /*TrackballCameraController cameraController_trackball{
         m_GLFWHandle.window()};
@@ -396,6 +402,18 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         const auto viewMatrix = camera.getViewMatrix();
+//        std::cout << LigthDirectionLocation << " and " << LigthIntensityLocation << std::endl;
+        if (LigthDirectionLocation >= 0) {
+              const auto lightDirectionInViewSpace =
+                  glm::normalize(glm::vec3(viewMatrix * glm::vec4(lightDirection, 0.)));
+                  glUniform3f(LigthDirectionLocation, lightDirectionInViewSpace[0],
+                  lightDirectionInViewSpace[1], lightDirectionInViewSpace[2]);
+        }
+
+        if (LigthIntensityLocation >= 0) { // on check le retour des variable uniform qui doivent être strictement supérieur à 0
+              glUniform3f(LigthIntensityLocation, lightIntensity[0], lightIntensity[1],
+                  lightIntensity[2]);
+        }
 
         // The recursive function that should draw a node
         // We use a std::function because a simple lambda cannot be recursive
@@ -409,6 +427,7 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
             // normalMatrix = transpose(inverse(mvMatrix)) --> envoyer au shader donc aux GPU avec glUniformMatrix4fv
             const auto &node= model.nodes[nodeIdx];
             const glm::mat4 modelMatrix  = getLocalToWorldMatrix(node,parentMatrix);
+
             if( node.mesh >= 0) {
                 const glm::mat4 MVMatrix = viewMatrix* modelMatrix ;
                 const glm::mat4 MVProjectionMatrix = projMatrix * MVMatrix;
@@ -555,6 +574,32 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
 				} else if (currentcam == 1) {
                   ImGui::Text("Current cam : Trackball");
 				}
+				if (ImGui::CollapsingHeader("Light", ImGuiTreeNodeFlags_DefaultOpen)) {
+                    static float lightTheta = 0.f;
+                    static float lightPhi = 0.f;
+
+                    if (ImGui::SliderFloat("theta", &lightTheta, 0, glm::pi<float>()) || // bar slide pour changer la valeur de theta et phi
+                        ImGui::SliderFloat("phi", &lightPhi, 0, 2.f * glm::pi<float>())) {
+                      const auto sinPhi = glm::sin(lightPhi);
+                      const auto cosPhi = glm::cos(lightPhi);
+                      const auto sinTheta = glm::sin(lightTheta);
+                      const auto cosTheta = glm::cos(lightTheta);
+                      lightDirection =
+                          glm::vec3(sinTheta * cosPhi, cosTheta, sinTheta * sinPhi);
+                    }
+
+                    static glm::vec3 lightColor(1.f, 1.f, 1.f);
+                    static float lightIntensityFactor = 1.f;
+
+                    if (ImGui::ColorEdit3("color", (float *)&lightColor) ||
+                        ImGui::SliderFloat("intensity", &lightIntensityFactor, 0, 100.f)/*||
+                        ImGui::InputFloat("intensity", &lightIntensityFactor)*/) {
+                            lightIntensity = lightColor * lightIntensityFactor;
+                    }
+                   /* if (ImGui::InputFloat("intensity", &lightIntensityFactor)){
+                            lightIntensity = lightColor * lightIntensityFactor;
+                        }*/
+                  }
 
             }
             ImGui::End();
