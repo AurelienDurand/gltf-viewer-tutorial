@@ -121,39 +121,47 @@ bool FirstPersonCameraController::update(float elapsedTime)
 
 bool TrackballCameraController::update(float elapsedTime) {
 
-if (glfwGetMouseButton(m_pWindow, GLFW_MOUSE_BUTTON_MIDDLE ) &&
-      !m_MiddleButtonPressed) {
-    m_MiddleButtonPressed = true;
-    // on récupere la position de la souris quand le bouton millieu de la souris est appuyer
-    glfwGetCursorPos(
-        m_pWindow, &m_LastCursorPosition.x, &m_LastCursorPosition.y);
-  } else if (!glfwGetMouseButton(m_pWindow, GLFW_MOUSE_BUTTON_MIDDLE ) &&
-             m_MiddleButtonPressed) {
-    m_MiddleButtonPressed = false;
-  }
+    if (glfwGetMouseButton(m_pWindow, GLFW_MOUSE_BUTTON_MIDDLE ) &&
+          !m_MiddleButtonPressed) {
+        m_MiddleButtonPressed = true;
+        // on récupere la position de la souris quand le bouton millieu de la souris est appuyer
+        glfwGetCursorPos(
+            m_pWindow, &m_LastCursorPosition.x, &m_LastCursorPosition.y);
+      } else if (!glfwGetMouseButton(m_pWindow, GLFW_MOUSE_BUTTON_MIDDLE ) &&
+                 m_MiddleButtonPressed) {
+        m_MiddleButtonPressed = false;
+      }
 
-  const auto cursorDelta = ([&]() {
-    if (m_MiddleButtonPressed) {
-      dvec2 cursorPosition;
-      glfwGetCursorPos(m_pWindow, &cursorPosition.x, &cursorPosition.y);
-      const auto delta = cursorPosition - m_LastCursorPosition;
-      m_LastCursorPosition = cursorPosition;
-      return delta;
-    }
-    return dvec2(0);
-  })();
 
-  const float panLeftAngle = -0.01f * float(cursorDelta.x);
-  const float tiltDownAngle = 0.01f * float(cursorDelta.y);
+      const auto cursorDelta = ([&]() {
+        if (m_MiddleButtonPressed) {
+          dvec2 cursorPosition;
+          glfwGetCursorPos(m_pWindow, &cursorPosition.x, &cursorPosition.y);
+          const auto delta = cursorPosition - m_LastCursorPosition;
+          m_LastCursorPosition = cursorPosition;
+          return delta;
+        }
+        return dvec2(0);
+      })();
+      float panShift =0;
+      if (glfwGetKey(m_pWindow, GLFW_KEY_LEFT_SHIFT)) {
+            panShift = 0.01f;
+      }
+      const float panLeftAngle = -0.01f * float(cursorDelta.x) + panShift;
+      const float tiltDownAngle = 0.01f * float(cursorDelta.y);
 
-  const auto hasMoved =  panLeftAngle || tiltDownAngle ;
-  if (!hasMoved) {
-    return false;
-  }
-  m_camera.orbit(tiltDownAngle, panLeftAngle);
-      //
-//
-    return true;
+
+
+
+
+      const auto hasMoved =  panLeftAngle || tiltDownAngle ;
+      if (!hasMoved) {
+        return false;
+      }
+      m_camera.orbit(tiltDownAngle, panLeftAngle);
+          //
+    //
+        return true;
 
     }
 /*
