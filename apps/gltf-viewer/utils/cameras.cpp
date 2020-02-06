@@ -147,8 +147,7 @@ bool TrackballCameraController::update(float elapsedTime) {
       if (glfwGetKey(m_pWindow, GLFW_KEY_LEFT_SHIFT)) {
             panShift = 0.01f;
       }*/
-      const float panLeftAngle = -0.01f * float(cursorDelta.x) /*+ panShift*/;
-      const float tiltDownAngle = 0.01f * float(cursorDelta.y);
+
 
 
 
@@ -165,13 +164,46 @@ bool TrackballCameraController::update(float elapsedTime) {
             return true;
       }
 
+      if (glfwGetKey(m_pWindow, GLFW_KEY_LEFT_CONTROL)) {
+            // Pan
 
-      const auto hasMoved =  panLeftAngle || tiltDownAngle ;
+            float mouseOffset  = 0.01f * float(cursorDelta.x);
+            const auto hasMoved = mouseOffset ;
+            if (!hasMoved) {
+              return false;
+            }
+            const auto viewVector = m_camera.center() - m_camera.eye();
+            if (mouseOffset > 0.f) {
+              // We don't want to move more that the length of the view vector (cannot
+              // go beyond target)
+              mouseOffset = glm::min(mouseOffset, glm::length(viewVector) - 1e-4f);
+            }
+            const auto neweye = m_camera.eye() + glm::normalize(viewVector)*mouseOffset ;
+            Camera newcam = Camera(neweye, m_camera.center(), m_worldUpAxis) ;
+            setCamera(newcam);
+           // m_camera.moveLocal(truckLeft, pedestalUp, 0.f);
+            return true;
+      }
+    // Orbit move on trackball update :Rotate around the center of the camera, along local axes
+
+
+
+      const float latitudeAngle  = -0.01f * float(cursorDelta.x) /*+ panShift*/;
+      const float longitudeAngle = 0.01f * float(cursorDelta.y);
+
+      const auto hasMoved =  longitudeAngle || latitudeAngle ;
       if (!hasMoved) {
         return false;
       }
-      m_camera.orbit(tiltDownAngle, panLeftAngle);
-          //
+      const auto rotationMatrix_longi = glm::rotate(glm::mat4(1), longitudeAngle, m_camera.left());
+      const auto rotationMatrix_lati = glm::rotate(glm::mat4(1), latitudeAngle,m_worldUpAxis);
+      const auto finalrotat = glm::vec3(rotationMatrix_lati * rotationMatrix_longi*glm::vec4(m_camera.eye()- m_camera.center() , 0)); // 0 car une direction n'a pas de composante homogene
+     /* const auto depthAxis = m_camera.eye() - m_camera.center();*/
+      const auto newEye = finalrotat +m_camera.center() ;
+      m_camera = Camera(newEye, m_camera.center(), m_worldUpAxis);
+
+
+          /////////////////////////////////////
     //
         return true;
 

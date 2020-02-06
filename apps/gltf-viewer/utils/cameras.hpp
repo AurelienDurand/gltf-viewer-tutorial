@@ -118,17 +118,6 @@ public:
     m_up = glm::vec3(rotationMatrix * glm::vec4(m_up, 0));
   }
 
-  // Rotate around the center of the camera, along local axes
-  // todo not implemented yet, needed for TrackballCamera
-  void orbit(float longitudeAngle, float latitudeAngle) {
-    const auto rotationMatrix_longi =
-		glm::rotate(glm::mat4(1), longitudeAngle, glm::vec3(1, 0, 0));
-	const auto rotationMatrix_lati =
-        glm::rotate(glm::mat4(1), latitudeAngle, glm::vec3(0, 1, 0));
-    m_eye = glm::vec3(
-        rotationMatrix_longi * rotationMatrix_lati*glm::vec4(m_eye, 0));
-  }
-
   const glm::vec3 eye() const { return m_eye; }
 
   const glm::vec3 center() const { return m_center; }
