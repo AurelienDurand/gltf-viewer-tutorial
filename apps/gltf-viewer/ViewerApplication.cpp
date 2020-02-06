@@ -319,6 +319,8 @@ int ViewerApplication::run()
         glGetUniformLocation(glslProgram.glId(), "uWi");
     const auto LigthIntensityLocation =
         glGetUniformLocation(glslProgram.glId(), "uLi");
+    const auto BaseColorFactorLocation =
+        glGetUniformLocation(glslProgram.glId(), "uBaseColorFactor");
 
     tinygltf::Model model;
     // TODO Loading the glTF file
@@ -452,6 +454,14 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
                         const auto &accessor = model.accessors[accessorIdx];
                         const auto &bufferView = model.bufferViews[accessor.bufferView];
                         const auto byteOffset = accessor.byteOffset + bufferView.byteOffset ;
+                        const auto &primMaterialIdx = primloc.material;
+                        const auto &accessMaterial = model.materials[primMaterialIdx];
+                        //std::cout << primMaterial << std::endl;
+                        const auto &pbrMetallicRoughness = accessMaterial.pbrMetallicRoughness;
+                        const auto meshebaseColor = pbrMetallicRoughness.baseColorFactor;
+                        glm::vec4 meshbaseColorvec4 = glm::vec4(meshebaseColor[0],meshebaseColor[1],meshebaseColor[2],meshebaseColor[3]);
+                        glUniform4fv(BaseColorFactorLocation,1 ,glm::value_ptr(meshbaseColorvec4) );
+
                         glDrawElements(primloc.mode,(GLsizei)accessor.count,accessor.componentType,(const GLvoid*)(byteOffset));
                     } else {
                         // we need the number of vertex to rend
