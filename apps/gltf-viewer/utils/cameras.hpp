@@ -143,7 +143,23 @@ private:
   glm::vec3 m_up;
 };
 
-class FirstPersonCameraController
+
+class CameraController
+{
+public:
+  // Always add a virtual destructor to an interface
+  virtual ~CameraController() {}
+
+  virtual void setCamera(const Camera &camera) = 0;
+
+  virtual const Camera &getCamera() const = 0;
+
+  virtual bool update(float elapsedTime) = 0;
+};
+
+
+
+class FirstPersonCameraController : public CameraController
 {
 public:
   FirstPersonCameraController(GLFWwindow *window, float speed = 1.f,
@@ -176,12 +192,12 @@ public:
 
   // Update the view matrix based on input events and elapsed time
   // Return true if the view matrix has been modified
-  bool update(float elapsedTime);
+  bool update (float elapsedTime) override;
 
   // Get the view matrix
-  const Camera &getCamera() const { return m_camera; }
+  const Camera &getCamera() const override{ return m_camera; }
 
-  void setCamera(const Camera &camera) { m_camera = camera; }
+  void setCamera(const Camera &camera) override { m_camera = camera; }
 
 private:
   GLFWwindow *m_pWindow = nullptr;
@@ -198,7 +214,7 @@ private:
 };
 
 // todo Blender like camera
-class TrackballCameraController
+class TrackballCameraController : public CameraController
 {
 public:
   TrackballCameraController(GLFWwindow *window, float speed = 1.f,
@@ -211,7 +227,7 @@ public:
   }
 
   // Update the view matrix based on input events and elapsed time
-  bool update(float elapsedTime);
+  bool update(float elapsedTime) override;
   // set speed
   void setSpeed(float speed) { m_fSpeed = speed; }
 
@@ -242,8 +258,8 @@ public:
 
   const glm::mat4 &getRcpViewMatrix() const { return m_RcpViewMatrix; }*/
   // Get the view matrix
-  const Camera &getCamera() const { return m_camera; }
-  void setCamera(const Camera &camera) { m_camera = camera; }
+  const Camera &getCamera() const override{ return m_camera; }
+  void setCamera(const Camera &camera) override { m_camera = camera; }
 
 private:
   GLFWwindow *m_pWindow = nullptr;

@@ -338,10 +338,14 @@ int ViewerApplication::run()
 
     // TODO Implement a new CameraController model and use it instead. Propose the
     // choice from the GUI
-   FirstPersonCameraController cameraController_FPS{
-        m_GLFWHandle.window(), 0.1f * maxDistance};
+
+std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPersonCameraController> (
+        m_GLFWHandle.window(), 0.1f * maxDistance);
+
+  /* FirstPersonCameraController cameraController_FPS{
+        m_GLFWHandle.window(), 0.1f * maxDistance};*/
     if (m_hasUserCamera) {
-     cameraController_FPS.setCamera(m_userCamera);
+     cameraController->setCamera(m_userCamera);
     } else {
         // TODO Use scene bounds to compute a better default camera
 //        cameraController.setCamera(
@@ -350,10 +354,10 @@ int ViewerApplication::run()
             const auto up = glm::vec3(0,1,0);
             // il faut tester l'axe z (profondeur pour savoir si on est en 2d/3d)
             const auto eye = diag.z > 0 ? center + diag : center + 2.f * glm::cross(diag, up);
-            cameraController_FPS.setCamera(Camera{eye, center, up});
-    } 
+            cameraController->setCamera(Camera{eye, center, up});
+    }
 	//TrackBall
-    TrackballCameraController cameraController_trackball{
+    /*TrackballCameraController cameraController_trackball{
         m_GLFWHandle.window()};
     if (m_hasUserCamera) {
       cameraController_trackball.setCamera(m_userCamera);
@@ -369,7 +373,7 @@ int ViewerApplication::run()
           diag.z > 0 ? center + diag : center + 2.f * glm::cross(diag, up);
       cameraController_trackball.setCamera(Camera{eye, center, up});
     }
-
+*/
 
 
 
@@ -460,7 +464,7 @@ int ViewerApplication::run()
        // It means we can access variables that are defined outside of the lambda.
        // In particular, we can access cameraController and drawScene.
        renderToImage(m_nWindowWidth, m_nWindowHeight, numComponents, pixels.data(), [&]() {
-            const auto camera = cameraController_FPS.getCamera();
+            const auto camera = cameraController->getCamera();
             drawScene(camera);
         });
         // void flipImageYAxis(size_t width, size_t height, size_t numComponent, ComponentType *pixels)
@@ -474,16 +478,16 @@ int ViewerApplication::run()
 
 
 
-	std::pair<FirstPersonCameraController, TrackballCameraController>
+	/*std::pair<FirstPersonCameraController, TrackballCameraController>
         cameraController = std::make_pair(
-            cameraController_FPS, cameraController_trackball);
+            cameraController_FPS, cameraController_trackball);*/
 
     int currentcam = 0;
     // Loop until the user closes the window
     for (auto iterationCount = 0u; !m_GLFWHandle.shouldClose();
             ++iterationCount) {
         const auto seconds = glfwGetTime();
-
+        auto camera = cameraController->getCamera();
       /*if (currentcam == 0) {
 			const auto camera = cameraController.first.getCamera();
 			drawScene(camera);
@@ -491,9 +495,9 @@ int ViewerApplication::run()
 		    const auto camera = cameraController.second.getCamera();
 			drawScene(camera);
 	  }*/
-      const auto camera = currentcam == 0 ? cameraController.first.getCamera()
-                                          : cameraController.second.getCamera();
-		  
+      /*const auto camera = currentcam == 0 ? cameraController.first.getCamera()
+                                          : cameraController.second.getCamera();*/
+
 	  drawScene(camera);
         // GUI code:
         imguiNewFrame();
@@ -525,12 +529,26 @@ int ViewerApplication::run()
                     glfwSetClipboardString(m_GLFWHandle.window(), str.c_str());
                 }
                 if (ImGui::Button("Change Camera")) {
-                 
-                  if (currentcam == 0) {
-                    currentcam = 1;
-                  } else if (currentcam == 1) {
-                    currentcam = 0;
-                  }
+                    const auto currentCamera = cameraController->getCamera();
+                    if (currentcam == 0) {
+                        cameraController = std::make_unique<TrackballCameraController>(
+                        m_GLFWHandle.window(), 0.1f * maxDistance);
+                        currentcam = 1;
+                        const auto center = 0.5f *(bboxMax +bboxMin);
+                        const auto up = glm::vec3(0,1,0);
+                        // il faut tester l'axe z (profondeur pour savoir si on est en 2d/3d)
+                        const auto eye = diag.z > 0 ? center + diag : center + 2.f * glm::cross(diag, up);
+                        cameraController->setCamera(Camera{eye, center, up});
+
+
+                      } else if (currentcam == 1) {
+                        cameraController = std::make_unique<FirstPersonCameraController>(
+                            m_GLFWHandle.window(), 0.1f * maxDistance);
+                        currentcam = 0;
+                        cameraController->setCamera(currentCamera);
+                      }
+
+
 				}
                 if (currentcam == 0) {
                   ImGui::Text("Current cam : FPS");
@@ -550,13 +568,14 @@ int ViewerApplication::run()
         auto guiHasFocus =
             ImGui::GetIO().WantCaptureMouse || ImGui::GetIO().WantCaptureKeyboard;
         if (!guiHasFocus) {
-          if (currentcam == 0) {
+                cameraController->update(float(ellapsedTime));
+          /*if (currentcam == 0) {
             const auto camera =
                 cameraController.first.update(float(ellapsedTime));
 
           } else if (currentcam == 1) {
                 cameraController.second.update(float(ellapsedTime));
-          }
+          }*/
         }
 
         m_GLFWHandle.swapBuffers(); // Swap front and back buffers
