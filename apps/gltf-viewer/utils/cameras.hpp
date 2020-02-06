@@ -121,8 +121,8 @@ public:
   // Rotate around the center of the camera, along local axes
   // todo not implemented yet, needed for TrackballCamera
   void orbit(float longitudeAngle, float latitudeAngle) {
-    const auto rotationMatrix_longi = 
-		glm::rotate(glm::mat4(1), longitudeAngle, glm::vec3(1, 0, 0));	
+    const auto rotationMatrix_longi =
+		glm::rotate(glm::mat4(1), longitudeAngle, glm::vec3(1, 0, 0));
 	const auto rotationMatrix_lati =
         glm::rotate(glm::mat4(1), latitudeAngle, glm::vec3(0, 1, 0));
     m_eye = glm::vec3(
@@ -212,37 +212,61 @@ private:
 class TrackballCameraController
 {
 public:
-  TrackballCameraController(GLFWwindow *window) : m_pWindow(window), m_camera{glm::vec3(0), glm::vec3(0, 0, -1), glm::vec3(0, 1, 0)}
+  TrackballCameraController(GLFWwindow *window, float speed = 1.f,
+      const glm::vec3 &worldUpAxis = glm::vec3(0, 1, 0)) :
+           m_pWindow(window),
+           m_fSpeed(speed) ,
+           m_worldUpAxis(worldUpAxis),
+           m_camera{glm::vec3(0), glm::vec3(0, 0, -1), glm::vec3(0, 1, 0)}
   {
   }
 
   // Update the view matrix based on input events and elapsed time
   bool update(float elapsedTime);
+  // set speed
+  void setSpeed(float speed) { m_fSpeed = speed; }
+
+  float getSpeed() const { return m_fSpeed; }
+
+  void increaseSpeed(float delta)
+  {
+    m_fSpeed += delta;
+    m_fSpeed = glm::max(m_fSpeed, 0.f);
+  }
+  // world axis
+  void setWorldUpAxis(const glm::vec3 &worldUpAxis)
+  {
+
+    m_worldUpAxis = worldUpAxis;
+  }
+
 
   // Force a view matrix
-  void setViewMatrix(const glm::mat4 &viewMatrix)
+  /*void setViewMatrix(const glm::mat4 &viewMatrix)
   {
     m_ViewMatrix = viewMatrix;
     m_RcpViewMatrix = glm::inverse(viewMatrix);
-  }
+  }*/
 
   // Get the view matrix
-  const glm::mat4 &getViewMatrix() const { return m_ViewMatrix; }
+ /* const glm::mat4 &getViewMatrix() const { return m_ViewMatrix; }
 
-  const glm::mat4 &getRcpViewMatrix() const { return m_RcpViewMatrix; }
+  const glm::mat4 &getRcpViewMatrix() const { return m_RcpViewMatrix; }*/
   // Get the view matrix
   const Camera &getCamera() const { return m_camera; }
   void setCamera(const Camera &camera) { m_camera = camera; }
 
 private:
-  GLFWwindow *m_pWindow;
+  GLFWwindow *m_pWindow = nullptr;
+  float m_fSpeed = 0.f;
+  glm::vec3 m_worldUpAxis;
 
   bool m_MiddleButtonPressed = false;
   glm::dvec2 m_LastCursorPosition;
 
-  glm::mat4 m_ViewMatrix = glm::mat4(1);
-  glm::mat4 m_RcpViewMatrix = glm::mat4(1);
-  
+  /*glm::mat4 m_ViewMatrix = glm::mat4(1);
+  glm::mat4 m_RcpViewMatrix = glm::mat4(1);*/
+
 
 
   // Current camera

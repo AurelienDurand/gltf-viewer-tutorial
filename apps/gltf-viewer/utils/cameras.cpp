@@ -143,15 +143,27 @@ bool TrackballCameraController::update(float elapsedTime) {
         }
         return dvec2(0);
       })();
-      float panShift =0;
+      /*float panShift =0;
       if (glfwGetKey(m_pWindow, GLFW_KEY_LEFT_SHIFT)) {
             panShift = 0.01f;
-      }
-      const float panLeftAngle = -0.01f * float(cursorDelta.x) + panShift;
+      }*/
+      const float panLeftAngle = -0.01f * float(cursorDelta.x) /*+ panShift*/;
       const float tiltDownAngle = 0.01f * float(cursorDelta.y);
 
 
 
+      if (glfwGetKey(m_pWindow, GLFW_KEY_LEFT_SHIFT)) {
+            // Pan
+           // std::cout<< "truckleft" << std::endl;
+            const float truckLeft = 0.01f * float(cursorDelta.x);
+            const float pedestalUp = 0.01f * float(cursorDelta.y);
+            const auto hasMoved = truckLeft || pedestalUp;
+            if (!hasMoved) {
+              return false;
+            }
+            m_camera.moveLocal(truckLeft, pedestalUp, 0.f);
+            return true;
+      }
 
 
       const auto hasMoved =  panLeftAngle || tiltDownAngle ;
