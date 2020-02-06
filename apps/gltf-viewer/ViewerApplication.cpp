@@ -332,7 +332,7 @@ int ViewerApplication::run()
     // Build projection matrix
 //    auto maxDistance = 500.f; // TODO use scene bounds instead to compute this
 //    maxDistance = maxDistance > 0.f ? maxDistance : 100.f;
-    const auto diag = bboxMax -bboxMin;
+    const auto diag = bboxMax -bboxMin; // On Prend le vecteur entre les bornes min et max de la box
     auto maxDistance = glm::length(diag);
     maxDistance = maxDistance > 0.f ? maxDistance : 100.f;
 
@@ -354,14 +354,16 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
         // TODO Use scene bounds to compute a better default camera
 //        cameraController.setCamera(
 //            Camera{glm::vec3(0, 0, 0), glm::vec3(0, 0, -1), glm::vec3(0, 1, 0)});
+//          On prend le millieu de la box comme point centre de la caméra
             const auto center = 0.5f *(bboxMax +bboxMin);
             const auto up = glm::vec3(0,1,0);
             // il faut tester l'axe z (profondeur pour savoir si on est en 2d/3d)
             const auto eye = diag.z > 0 ? center + diag : center + 2.f * glm::cross(diag, up);
             cameraController->setCamera(Camera{eye, center, up});
     }
-
+/// Création des vecteur Wi et Li pour la lumière
     glm::vec3 lightDirection(1,1,1), lightIntensity(1,1,1);
+     bool lightFromCamera = false;
 	//TrackBall
     /*TrackballCameraController cameraController_trackball{
         m_GLFWHandle.window()};
@@ -380,14 +382,11 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
       cameraController_trackball.setCamera(Camera{eye, center, up});
     }
 */
-
-
-
-    // TODO Creation of Buffer Objects
+    //  Creation of Buffer Objects
     const std::vector<GLuint> BufferObjectsvector = createBufferObjects(model);
     // const auto vbos = createBufferObjects(model);
 
-    // TODO Creation of Vertex Array Objects
+    //  Creation of Vertex Array Objects
     std::vector<VaoRange> meshToVertexArrays;
     const auto vao = createVertexArrayObjects(model, BufferObjectsvector, meshToVertexArrays);
 
@@ -403,7 +402,9 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
 
         const auto viewMatrix = camera.getViewMatrix();
 //        std::cout << LigthDirectionLocation << " and " << LigthIntensityLocation << std::endl;
-        if (LigthDirectionLocation >= 0) {
+        if(lightFromCamera){
+             glUniform3f(LigthDirectionLocation, 0,0, 1);
+        } else if (LigthDirectionLocation >= 0) {
               const auto lightDirectionInViewSpace =
                   glm::normalize(glm::vec3(viewMatrix * glm::vec4(lightDirection, 0.)));
                   glUniform3f(LigthDirectionLocation, lightDirectionInViewSpace[0],
@@ -411,6 +412,7 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
         }
 
         if (LigthIntensityLocation >= 0) { // on check le retour des variable uniform qui doivent être strictement supérieur à 0
+                // si <0 alors la variable n'est soit pas défini dans le shader soit non utilisée
               glUniform3f(LigthIntensityLocation, lightIntensity[0], lightIntensity[1],
                   lightIntensity[2]);
         }
@@ -519,7 +521,7 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
 
 	  drawScene(camera);
         // GUI code:
-        imguiNewFrame();
+      imguiNewFrame();
 
         {
             ImGui::Begin("GUI");
@@ -590,12 +592,12 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
 
                     static glm::vec3 lightColor(1.f, 1.f, 1.f);
                     static float lightIntensityFactor = 1.f;
-
                     if (ImGui::ColorEdit3("color", (float *)&lightColor) ||
-                        ImGui::SliderFloat("intensity", &lightIntensityFactor, 0, 100.f)/*||
+                        ImGui::SliderFloat("intensity", &lightIntensityFactor, 0, 25.f)/*||
                         ImGui::InputFloat("intensity", &lightIntensityFactor)*/) {
                             lightIntensity = lightColor * lightIntensityFactor;
                     }
+                    ImGui::Checkbox("light from camera", &lightFromCamera);
                    /* if (ImGui::InputFloat("intensity", &lightIntensityFactor)){
                             lightIntensity = lightColor * lightIntensityFactor;
                         }*/
