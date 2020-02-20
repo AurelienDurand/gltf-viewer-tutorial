@@ -15,6 +15,10 @@ public:
       const fs::path &output);
       int run();
 
+      /// /* Physically Based Material*/
+      std::vector<GLuint> createTextureObjects(const tinygltf::Model &model) const;
+
+
 private:
   // A range of indices in a vector containing Vertex Array Objects
   struct VaoRange
@@ -36,7 +40,9 @@ private:
   fs::path m_gltfFilePath;
   std::string m_vertexShader = "forward.vs.glsl";
   //std::string m_fragmentShader = "normals.fs.glsl";
-  std::string m_fragmentShader = "diffuse_directional_light.fs.glsl";
+ // std::string m_fragmentShader = "diffuse_directional_light.fs.glsl";
+  //pbr_directional_light
+  std::string m_fragmentShader = "pbr_directional_light.fs.glsl";
   bool m_hasUserCamera = false;
   Camera m_userCamera;
 

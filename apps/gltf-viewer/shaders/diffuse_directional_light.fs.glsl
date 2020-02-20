@@ -6,6 +6,7 @@ in vec2 vTexCoords;
 uniform vec3 uWi; // ligth direction
 uniform vec3 uLi; // Ligth intensity
 uniform vec4 uBaseColorFactor ;
+uniform sampler2D uBaseColor ;
 out vec3 fColor;
 
 
@@ -19,6 +20,7 @@ void main()
    float fr = 1.0/3.14;
    //dot product between ligth direction and normal to obtain cos
    //fColor = vec3(fr)*uLi*dot(viewSpaceNormal,uWi);
+   vec4 text3D = texture(uBaseColor, vTexCoords);
    fColor = vec3(uBaseColorFactor)*uLi*dot(viewSpaceNormal,uWi);
 
 

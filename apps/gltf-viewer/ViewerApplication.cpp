@@ -149,7 +149,48 @@ const GLuint VERTEX_ATTRIB_TEXCOORD0_IDX = 2;
 //  return vertexArrayObjects;
 //}
 
+std::vector<GLuint> ViewerApplication::createTextureObjects(const tinygltf::Model &model) const
+{
+    std::vector<GLuint> texObject(model.textures.size());
+    //GLuint texObject;
+    // Generate the texture object
+    glGenTextures((GLsizei)model.textures.size(), texObject.data());
+   //glBindTexture(GL_TEXTURE_2D, texObject);
+    tinygltf::Sampler defaultSampler;
+    defaultSampler.minFilter = GL_LINEAR;
+    defaultSampler.magFilter = GL_LINEAR;
+    defaultSampler.wrapS = GL_REPEAT;
+    defaultSampler.wrapT = GL_REPEAT;
+    defaultSampler.wrapR = GL_REPEAT;
+    for(size_t i =0; i< model.textures.size(); i++) {
+        glBindTexture(GL_TEXTURE_2D,texObject[i]);
+        const auto &texture = model.textures[i]; // get i-th texture
+        assert(texture.source >= 0); // ensure a source image is present
+        const auto &image = model.images[texture.source]; // get the image
+        // fill the texture object with the data from the image
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0,
+                GL_RGBA, image.pixel_type, image.image.data());
+        const auto &sampler =
+        texture.sampler >= 0 ? model.samplers[texture.sampler] : defaultSampler;
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+           sampler.minFilter != -1 ? sampler.minFilter : GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+           sampler.magFilter != -1 ? sampler.magFilter : GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, sampler.wrapS);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, sampler.wrapT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, sampler.wrapR);
+        if (sampler.minFilter == GL_NEAREST_MIPMAP_NEAREST ||
+           sampler.minFilter == GL_NEAREST_MIPMAP_LINEAR ||
+           sampler.minFilter == GL_LINEAR_MIPMAP_NEAREST ||
+           sampler.minFilter == GL_LINEAR_MIPMAP_LINEAR) {
+           glGenerateMipmap(GL_TEXTURE_2D);
+        }
+    }
+    glBindTexture(GL_TEXTURE_2D,0);
 
+
+    return texObject;
+}
 bool ViewerApplication::loadGltfFile(tinygltf::Model & model)
 {
     tinygltf::TinyGLTF loader;
@@ -321,6 +362,10 @@ int ViewerApplication::run()
         glGetUniformLocation(glslProgram.glId(), "uLi");
     const auto BaseColorFactorLocation =
         glGetUniformLocation(glslProgram.glId(), "uBaseColorFactor");
+    /// Pbr directional light
+    const auto BaseColorTexture_Location =
+        glGetUniformLocation(glslProgram.glId(), "uBaseColorTexture");
+
 
     tinygltf::Model model;
     // TODO Loading the glTF file
@@ -384,6 +429,21 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
       cameraController_trackball.setCamera(Camera{eye, center, up});
     }
 */
+    /// Création vecteur texture - generation de la texture - bind
+    const std::vector<GLuint> textureObjects = createTextureObjects(model);
+    GLuint whiteTexture;
+    float white[] = {1, 1, 1, 1};
+    glGenTextures(1, &whiteTexture); // on génére l'elem
+    glBindTexture(GL_TEXTURE_2D, whiteTexture); // on le bind avec GL_TEXTURE_2D
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,1, 1, 0, GL_RGBA, GL_FLOAT, white); // obtenir la texture à partir d'une image
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+
     //  Creation of Buffer Objects
     const std::vector<GLuint> BufferObjectsvector = createBufferObjects(model);
     // const auto vbos = createBufferObjects(model);
@@ -395,7 +455,59 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
     // Setup OpenGL state for rendering
     glEnable(GL_DEPTH_TEST);
     glslProgram.use();
+    ///Texture
+    /*GLuint texture;
+    glGenTextures(1, texture); // on génére l'elem
+    glBindTexture(GL_TEXTURE_2D, *texture); // on le bind avec GL_TEXTURE_2D
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glDrawArrays(GL_TRIANGLES, x, y);
+    glBindTexture(GL_TEXTURE_2D,0);*/
 
+    ///Biding Texture
+    const auto bindMaterial = [&](const auto materialIndex) {
+            const auto &accessMaterial = model.materials[materialIndex];
+            const auto &pbrMetallicRoughness = accessMaterial.pbrMetallicRoughness;
+            const auto &baseColorTexture =  pbrMetallicRoughness.baseColorTexture;
+            const auto &texIdx = baseColorTexture.index;
+            if(materialIndex >= 0 && texIdx>=0){
+
+                const auto &accestexture = model.textures[texIdx];
+                glActiveTexture(GL_TEXTURE0);
+                if (accestexture.source >= 0) {
+                    glBindTexture(GL_TEXTURE_2D, textureObjects[accestexture.source]);
+                }
+                // By setting the uniform to 0, we tell OpenGL the texture is bound on tex unit 0:
+                glUniform1i(BaseColorTexture_Location, 0);
+
+            }
+            else {
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, whiteTexture);
+                // By setting the uniform to 0, we tell OpenGL the texture is bound on tex unit 0:
+                glUniform1i(BaseColorTexture_Location, 0);
+
+            }
+//            const auto &primMaterialIdx = primloc.material;
+//            const auto &accessMaterial = model.materials[primMaterialIdx];
+//            //std::cout << primMaterial << std::endl;
+//            const auto &pbrMetallicRoughness = accessMaterial.pbrMetallicRoughness;
+//            const auto meshebaseColor = pbrMetallicRoughness.baseColorFactor;
+//            glm::vec4 meshbaseColorvec4 = glm::vec4(meshebaseColor[0],meshebaseColor[1],
+//                                                    meshebaseColor[2],meshebaseColor[3]);
+//            glUniform4fv(BaseColorFactorLocation,1 ,glm::value_ptr(meshbaseColorvec4) );
+            /*///get texture
+            const auto &baseColorTexture=  pbrMetallicRoughness.baseColorTexture;
+            //const auto &texIdx = baseColorTexture.texCoord;
+            const auto &texIdx = baseColorTexture.index;
+            const auto &accestexture = model.textures[texIdx];
+            const auto &idxsources = accestexture.source;
+            const auto &idxsampler = accestexture.sampler;
+            const auto accessource = model.images[idxsampler];
+            const auto accesampler = model.samplers[idxsampler];*/
+    };
+
+
+    ///Drawscene
     // Lambda function to draw the scene
     //[&] captures all symbols by reference
     const auto drawScene = [&](const Camera &camera) {
@@ -448,20 +560,33 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
                 for(size_t prIdx = 0; prIdx < meshloc.primitives.size(); prIdx++) {
                     const auto vaoloc = vao[vaoRange.begin+prIdx];
                     const auto &primloc = meshloc.primitives[prIdx];
+                    bindMaterial (primloc.material);
                     glBindVertexArray(vaoloc);
                     if(primloc.indices >= 0) {
                         const auto accessorIdx = primloc.indices;
                         const auto &accessor = model.accessors[accessorIdx];
                         const auto &bufferView = model.bufferViews[accessor.bufferView];
                         const auto byteOffset = accessor.byteOffset + bufferView.byteOffset ;
+                        ///get material
                         const auto &primMaterialIdx = primloc.material;
                         const auto &accessMaterial = model.materials[primMaterialIdx];
                         //std::cout << primMaterial << std::endl;
                         const auto &pbrMetallicRoughness = accessMaterial.pbrMetallicRoughness;
                         const auto meshebaseColor = pbrMetallicRoughness.baseColorFactor;
-                        glm::vec4 meshbaseColorvec4 = glm::vec4(meshebaseColor[0],meshebaseColor[1],meshebaseColor[2],meshebaseColor[3]);
+                        glm::vec4 meshbaseColorvec4 = glm::vec4(meshebaseColor[0],meshebaseColor[1],
+                                                                meshebaseColor[2],meshebaseColor[3]);
                         glUniform4fv(BaseColorFactorLocation,1 ,glm::value_ptr(meshbaseColorvec4) );
+                        /*///get texture
+                        const auto &baseColorTexture=  pbrMetallicRoughness.baseColorTexture;
+                        //const auto &texIdx = baseColorTexture.texCoord;
+                        const auto &texIdx = baseColorTexture.index;
+                        const auto &accestexture = model.textures[texIdx];
+                        const auto &idxsources = accestexture.source;
+                        const auto &idxsampler = accestexture.sampler;
+                        const auto accessource = model.images[idxsampler];
+                        const auto accesampler = model.samplers[idxsampler];
 
+                        */
                         glDrawElements(primloc.mode,(GLsizei)accessor.count,accessor.componentType,(const GLvoid*)(byteOffset));
                     } else {
                         // we need the number of vertex to rend
