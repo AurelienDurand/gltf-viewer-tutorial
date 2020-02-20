@@ -367,6 +367,13 @@ int ViewerApplication::run()
         glGetUniformLocation(glslProgram.glId(), "uBaseColorTexture");
 
 
+    const auto MetallicFactorLocation =
+        glGetUniformLocation(glslProgram.glId(), "uMetallicFactor");;
+    const auto RougnessFactorLocation =
+        glGetUniformLocation(glslProgram.glId(), "uRougnessFactor");;
+    const auto MetallicRoughnessTexturLocation =
+        glGetUniformLocation(glslProgram.glId(), "uMetallicRoughnessTextur");;
+    std::cout << "Metal uniform location" << MetallicFactorLocation << "/" << RougnessFactorLocation <<  "/" << MetallicRoughnessTexturLocation << std::endl;
     tinygltf::Model model;
     // TODO Loading the glTF file
     if (!loadGltfFile(model)) {
@@ -468,23 +475,59 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
             const auto &accessMaterial = model.materials[materialIndex];
             const auto &pbrMetallicRoughness = accessMaterial.pbrMetallicRoughness;
             const auto &baseColorTexture =  pbrMetallicRoughness.baseColorTexture;
-            const auto &texIdx = baseColorTexture.index;
-            if(materialIndex >= 0 && texIdx>=0){
+            const auto &metallicRoughnessTexture =  pbrMetallicRoughness.metallicRoughnessTexture;
+           /* MetallicFactorLocation
+            RougnessFactorLocation
+            MetallicRoughnessTexturLocation*/
 
+
+
+            const auto &texIdx = baseColorTexture.index;
+            const auto &texIdx_mettal = metallicRoughnessTexture.index;
+            if(materialIndex >= 0 && texIdx>=0){
+                if (BaseColorFactorLocation >= 0) {
+                    glUniform4f(BaseColorFactorLocation,
+                       (float)pbrMetallicRoughness.baseColorFactor[0],
+                       (float)pbrMetallicRoughness.baseColorFactor[1],
+                       (float)pbrMetallicRoughness.baseColorFactor[2],
+                       (float)pbrMetallicRoughness.baseColorFactor[3]);
+                }
                 const auto &accestexture = model.textures[texIdx];
                 glActiveTexture(GL_TEXTURE0);
                 if (accestexture.source >= 0) {
                     glBindTexture(GL_TEXTURE_2D, textureObjects[accestexture.source]);
+
                 }
                 // By setting the uniform to 0, we tell OpenGL the texture is bound on tex unit 0:
                 glUniform1i(BaseColorTexture_Location, 0);
 
+                const auto &accestexturemettal = model.textures[texIdx_mettal];
+                glActiveTexture(GL_TEXTURE1);
+                if (accestexturemettal.source >= 0) {
+                    glBindTexture(GL_TEXTURE_2D, textureObjects[accestexturemettal.source]);
+                    glUniform1i(MetallicRoughnessTexturLocation, 1);
+                }
+                if(pbrMetallicRoughness.metallicFactor >= 0 ){
+                    glUniform1f(MetallicFactorLocation, (GLfloat)pbrMetallicRoughness.metallicFactor);
+                }
+                if(pbrMetallicRoughness.roughnessFactor >=0 ){
+                    glUniform1f(RougnessFactorLocation, (GLfloat)pbrMetallicRoughness.roughnessFactor);
+                }
+
+
+
             }
             else {
+                if (BaseColorFactorLocation >= 0) {
+                    glUniform4f(BaseColorFactorLocation,1,1,1,1);
+                }
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, whiteTexture);
                 // By setting the uniform to 0, we tell OpenGL the texture is bound on tex unit 0:
                 glUniform1i(BaseColorTexture_Location, 0);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, 0);
+                glUniform1i(MetallicRoughnessTexturLocation, 1);
 
             }
 //            const auto &primMaterialIdx = primloc.material;
@@ -575,7 +618,7 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
                         const auto meshebaseColor = pbrMetallicRoughness.baseColorFactor;
                         glm::vec4 meshbaseColorvec4 = glm::vec4(meshebaseColor[0],meshebaseColor[1],
                                                                 meshebaseColor[2],meshebaseColor[3]);
-                        glUniform4fv(BaseColorFactorLocation,1 ,glm::value_ptr(meshbaseColorvec4) );
+                      //  glUniform4fv(BaseColorFactorLocation,1 ,glm::value_ptr(meshbaseColorvec4) );
                         /*///get texture
                         const auto &baseColorTexture=  pbrMetallicRoughness.baseColorTexture;
                         //const auto &texIdx = baseColorTexture.texCoord;
