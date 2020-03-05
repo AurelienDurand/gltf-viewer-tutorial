@@ -16,6 +16,9 @@ uniform vec4 uBaseColorFactor;
 uniform float uMetallicFactor;
 uniform float uRougnessFactor;
 uniform sampler2D uMetallicRoughnessTextur;
+//Emissive COlor
+uniform sampler2D uEmissiveColor;
+uniform vec3 uEmissiveFactor;
 //uniform vec4 uBaseColorFactor ;
 //uniform sampler2D uBaseColor ; //uBaseColorTexture
 
@@ -96,9 +99,11 @@ void main()
 
     vec3 f_difuse = (1-F) * diffuse;
     vec3 f = f_specular + f_difuse;
-    //
+    ///Emissive Texture
+    vec4 emmisivetexture = texture(uEmissiveColor, vTexCoords);
+    vec3 emmisive =  vec3(emmisivetexture)*uEmissiveFactor;
 
 
-    fColor = LINEARtoSRGB(f*uLi*NdotL);
+    fColor = max(LINEARtoSRGB(f*uLi*NdotL),vec3(0))+emmisive;
     //fColor = LINEARtoSRGB(diffuse1*uLi);
 }

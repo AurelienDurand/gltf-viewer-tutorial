@@ -373,7 +373,14 @@ int ViewerApplication::run()
         glGetUniformLocation(glslProgram.glId(), "uRougnessFactor");;
     const auto MetallicRoughnessTexturLocation =
         glGetUniformLocation(glslProgram.glId(), "uMetallicRoughnessTextur");;
-    std::cout << "Metal uniform location" << MetallicFactorLocation << "/" << RougnessFactorLocation <<  "/" << MetallicRoughnessTexturLocation << std::endl;
+   // std::cout << "Metal uniform location" << MetallicFactorLocation << "/" << RougnessFactorLocation <<  "/" << MetallicRoughnessTexturLocation << std::endl;
+    const auto uEmissiveColor =
+        glGetUniformLocation(glslProgram.glId(), "uEmissiveColor");;
+    const auto uEmissiveFactor =
+        glGetUniformLocation(glslProgram.glId(), "uEmissiveFactor");;
+
+
+
     tinygltf::Model model;
     // TODO Loading the glTF file
     if (!loadGltfFile(model)) {
@@ -476,11 +483,38 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
             if(materialIndex >= 0 ) {
                 const auto &accessMaterial = model.materials[materialIndex];
                 const auto &pbrMetallicRoughness = accessMaterial.pbrMetallicRoughness;
+                const auto &emissiveTexture = accessMaterial.emissiveTexture;
+                const auto &emissiveFactor= accessMaterial.emissiveFactor;
                 const auto &baseColorTexture =  pbrMetallicRoughness.baseColorTexture;
                 const auto &metallicRoughnessTexture =  pbrMetallicRoughness.metallicRoughnessTexture;
                /* MetallicFactorLocation
                 RougnessFactorLocation
                 MetallicRoughnessTexturLocation*/
+                if(uEmissiveFactor >= 0) { //uEmissiveColor
+                        glUniform3f(uEmissiveFactor,
+                           (float)emissiveFactor[0],
+                           (float)emissiveFactor[1],
+                           (float)emissiveFactor[2]);
+                }
+                const auto &texIdx_emissive = emissiveTexture.index;
+                if (uEmissiveColor >= 0) {
+                    auto notexture = 0u;
+                    if( texIdx_emissive>=0){
+                        glActiveTexture(GL_TEXTURE2);
+                        const auto &accestexture_emi = model.textures[texIdx_emissive];
+                        if (accestexture_emi.source >= 0) {
+                            glBindTexture(GL_TEXTURE_2D, textureObjects[accestexture_emi.source]);
+
+                        } else {
+                            glBindTexture(GL_TEXTURE_2D,notexture);
+                        }
+                    }
+                    // By setting the uniform to 2, we tell OpenGL the texture is bound on tex unit 2:
+                    glUniform1i(uEmissiveColor, 2);
+                }
+
+
+
                 if (BaseColorFactorLocation >= 0) {
                         glUniform4f(BaseColorFactorLocation,
                            (float)pbrMetallicRoughness.baseColorFactor[0],
@@ -499,7 +533,6 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
                         glActiveTexture(GL_TEXTURE0);
                         if (accestexture.source >= 0) {
                             glBindTexture(GL_TEXTURE_2D, textureObjects[accestexture.source]);
-
                         } else {
                             glBindTexture(GL_TEXTURE_2D,whiteTexture);
                         }
@@ -854,7 +887,7 @@ std::unique_ptr<CameraController> cameraController = std::make_unique<FirstPerso
                     static glm::vec3 lightColor(1.f, 1.f, 1.f);
                     static float lightIntensityFactor = 1.f;
                     if (ImGui::ColorEdit3("color", (float *)&lightColor) ||
-                        ImGui::SliderFloat("intensity", &lightIntensityFactor, 0, 25.f)/*||
+                        ImGui::SliderFloat("intensity", &lightIntensityFactor, 0, 15.f)/*||
                         ImGui::InputFloat("intensity", &lightIntensityFactor)*/) {
                             lightIntensity = lightColor * lightIntensityFactor;
                     }
